@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Formora — Reading Assistant</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <div>
+      <strong>Formora</strong>
+      <span>Reading Assistant</span>
+    </div>
+    <button id="analyzeBtn" class="primary">Analyze page</button>
+  </header>
+
+  <main>
+    <section id="pageCard" class="card muted">Select <b>Analyze page</b> to get AI recommendations for this site.</section>
+    <section id="recommendations" class="recommendations"></section>
+    <button id="applyAllBtn" class="primary full" hidden>Apply all recommendations</button>
+    <section id="result" class="result" hidden></section>
+
+    <div class="section-title">Reading Controls</div>
+
+    <div class="controls">
+      <!-- 1. Text Font & Size -->
+      <label>1. Text font
+        <select id="fontFamily">
+          <option value="system">Default Website Font</option>
+          <option value="sans">Sans-Serif (Clean)</option>
+          <option value="serif">Serif (Book)</option>
+          <option value="dyslexia">Dyslexia-Friendly</option>
+          <option value="mono">Monospace (Code)</option>
+        </select>
+      </label>
+
+      <label>Font size
+        <select id="fontSize">
+          <option value="small">Small (95%)</option>
+          <option value="medium">Medium (Default)</option>
+          <option value="large">Large (120%)</option>
+          <option value="x-large">Extra Large (145%)</option>
+        </select>
+      </label>
+
+      <!-- 2. Theme / Color Mode -->
+      <label>2. Theme / Color mode
+        <select id="background">
+          <option value="default">Default Website Theme</option>
+          <option value="warm">Warm Cream (Paper)</option>
+          <option value="sepia">Sepia (Reader)</option>
+          <option value="soft-gray">Soft Gray</option>
+          <option value="dark">Dark Mode</option>
+          <option value="black">True Black (OLED)</option>
+        </select>
+      </label>
+
+      <div class="manual-actions">
+        <button id="applyBtn" class="primary full">Apply Settings</button>
+        <button id="resetBtn" class="reset full">Reset Page</button>
+      </div>
+    </div>
+
+    <p id="status" role="status"></p>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

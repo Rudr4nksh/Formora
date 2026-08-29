@@ -1,0 +1,11 @@
+{
+  "name": "formora-ai-backend",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server.js",
+    "start:bg": "powershell -Command \"Start-Process node -ArgumentList 'server.js' -WorkingDirectory '%cd%' -WindowStyle Hidden\"",
+    "stop": "powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*server.js*' } | Stop-Process -Force\"",
+    "status": "powershell -Command \"$p = Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*server.js*' }; if ($p) { Write-Host 'Formora AI Server is running (PID:' $p.Id ')' } else { Write-Host 'Formora AI Server is not running' }\""
+  }
+}

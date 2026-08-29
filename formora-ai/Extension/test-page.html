@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Formora Test Page</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; }
+  nav ul { list-style: none; display: flex; gap: 16px; padding: 0; }
+  .cookie-banner { background: #333; color: white; padding: 12px; margin: 12px 0; }
+  .ad-slot { background: #ffe9b3; padding: 20px; text-align: center; margin: 20px 0; }
+  .btn { padding: 8px 16px; background: #eee; border: 1px solid #999; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<nav>
+  <ul>
+    <li><a href="#">Home</a></li>
+    <li><a href="#">Products</a></li>
+    <li><a href="#">Pricing</a></li>
+    <li><a href="#">About</a></li>
+    <li><a href="#">Blog</a></li>
+    <li><a href="#">Careers</a></li>
+    <li><a href="#">Docs</a></li>
+    <li><a href="#">Contact</a></li>
+    <li><a href="#">Support</a></li>
+  </ul>
+</nav>
+
+<div class="cookie-banner">This site uses cookies. <button class="btn">Accept</button></div>
+
+<h1>Welcome to the Formora test page</h1>
+
+<p>This paragraph exists to test typography and spacing transformations. It should get bigger and more readable when Formora is switched on, with more breathing room between paragraphs.</p>
+
+<p>Here is a second paragraph, immediately following the first, so you can see the density change between block-level content elements clearly.</p>
+
+<div class="ad-slot" id="advertisement-1">Sponsored content goes here</div>
+
+<button class="btn" id="primary-cta">Buy Now</button>
+<a href="#" class="btn">Learn more</a>
+
+<ul>
+  <li>List item one for spacing verification</li>
+  <li>List item two for spacing verification</li>
+  <li>List item three for spacing verification</li>
+</ul>
+
+<div class="newsletter-signup">
+  <p>Subscribe to our newsletter!</p>
+  <input type="email" placeholder="you@example.com" />
+  <button class="btn">Subscribe</button>
+</div>
+
+<img src="https://via.placeholder.com/300x100" alt="" />
+
+<script>
+  // Simulates dynamically added content, to test the MutationObserver path.
+  setTimeout(() => {
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = 'Dynamically Added CTA';
+    document.body.appendChild(btn);
+  }, 2000);
+</script>
+
+</body>
+</html>

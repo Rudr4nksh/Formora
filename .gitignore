@@ -1,0 +1,11 @@
+# Environment secret files
+.env
+*.env
+
+# Dependency directories
+node_modules/
+
+# Logs and scratch files
+*.log
+*.txt
+.DS_Store

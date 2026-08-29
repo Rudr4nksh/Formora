@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Formora AI Server",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$conn = Test-NetConnection -ComputerName localhost -Port 8787 -WarningAction SilentlyContinue; if (-not $conn.TcpTestSucceeded) { Write-Host 'Starting Formora AI Server on port 8787...'; Set-Location Website; node server.js } else { Write-Host 'Formora AI Server is already active on port 8787.' }\"",
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}
