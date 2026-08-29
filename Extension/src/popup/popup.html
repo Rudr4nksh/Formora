@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Formora</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="header">
+    <img src="../../icons/icon48.png" alt="" class="logo" />
+    <div>
+      <h1>Formora</h1>
+      <p class="subtitle">Personalization layer for the web</p>
+    </div>
+  </header>
+
+  <main class="content">
+    <p class="status" id="status">Checking this page…</p>
+
+    <section class="action-group">
+      <h2>Test transformation</h2>
+      <p class="hint">Increases text size on the current page to prove the pipeline works.</p>
+      <button id="applyBtn" class="btn btn-primary">Increase text size</button>
+      <button id="resetBtn" class="btn btn-secondary">Reset page</button>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span id="footerNote">Chrome → Extension → Content Script → DOM</span>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
