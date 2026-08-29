@@ -1,60 +1,62 @@
 /**
- * Formora — content script.
+ * Formora content script
  *
- * This is the piece that actually lives inside the webpage. Its only jobs:
- *   1. On load, check chrome.storage for a saved config and apply it
- *      (this is how a config set once from the popup/web app persists
- *      across page loads/navigations).
- *   2. Listen for live messages from the popup/background and run them
- *      through the transformation engine immediately.
+ * Responsibilities:
+ *  - On load, read stored {enabled, config} and apply if enabled, so
+ *    personalization survives page refreshes/navigations.
+ *  - Listen for messages from the popup / background worker and
+ *    apply/revert/report state on demand.
  *
- * Pipeline this file completes:
- *   Chrome (popup click) -> Extension (background/popup) -> Content Script
- *   (this file) -> DOM -> Personalized Website
+ * This file loads LAST (see manifest.json) so window.__formora.engine
+ * and friends already exist.
  */
-const { MessageTypes } = window.Formora;
-const { STORAGE_KEY } = window.Formora;
-const { engine } = window.Formora;
-
-let currentConfig = null;
-
-// --- 1. Apply any saved config as soon as the page is ready -------------
-chrome.storage.local.get([STORAGE_KEY], (result) => {
-  const saved = result[STORAGE_KEY];
-  if (saved) {
-    currentConfig = saved;
-    engine.applyConfig(saved);
-  }
-});
-
-// --- 2. React to live messages from popup / background ------------------
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  switch (message.type) {
-    case MessageTypes.APPLY_CONFIG: {
-      currentConfig = message.config;
-      engine.applyConfig(message.config);
-      sendResponse({ ok: true });
-      break;
-    }
-
-    case MessageTypes.RESET_CONFIG: {
-      currentConfig = null;
-      engine.resetAll();
-      sendResponse({ ok: true });
-      break;
-    }
-
-    case MessageTypes.GET_STATE: {
-      sendResponse({ ok: true, config: currentConfig });
-      break;
-    }
-
-    default:
-      break;
+(function () {
+  const NS = window.__formora;
+  if (!NS || !NS.engine) {
+    console.error('[Formora] engine failed to load — check manifest content_scripts order');
+    return;
   }
 
-  // Returning true keeps the message channel open for the async
-  // sendResponse calls above (not strictly needed here since they're
-  // synchronous, but kept for forward-compatibility with async transforms).
-  return true;
-});
+  async function init() {
+    try {
+      const { enabled, config } = await NS.storage.getState();
+      if (enabled && config) {
+        NS.engine.applyConfig(config);
+      }
+    } catch (err) {
+      console.error('[Formora] failed to restore state', err);
+    }
+  }
+
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!message || !message.type) return undefined;
+
+    switch (message.type) {
+      case 'FORMORA_APPLY': {
+        const applied = NS.engine.applyConfig(message.config);
+        NS.storage.setState({ enabled: true, config: applied });
+        sendResponse({ ok: true, config: applied });
+        break;
+      }
+      case 'FORMORA_REVERT': {
+        NS.engine.revertAll();
+        NS.storage.setState({ enabled: false });
+        sendResponse({ ok: true });
+        break;
+      }
+      case 'FORMORA_GET_STATE': {
+        sendResponse({
+          ok: true,
+          active: NS.engine.isActive(),
+          config: NS.engine.getCurrentConfig(),
+        });
+        break;
+      }
+      default:
+        return undefined;
+    }
+    return true; // keep the message channel open for async sendResponse
+  });
+
+  init();
+})();

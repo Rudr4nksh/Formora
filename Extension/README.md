@@ -1,115 +1,117 @@
-# Formora — Chrome Extension
+# Formora — Chrome Extension (Team 2)
 
-Team 2's scope: Chrome extension, content scripts, transformation engine,
-and the website ↔ extension communication bridge.
-
-## Pipeline this proves
-
-```
-Chrome (popup click)
-  → Extension (popup.js sends a message)
-    → Content Script (content.js receives it)
-      → Transformation Engine (registry.js runs fontSize.js)
-        → DOM (a <style> tag is injected)
-          → Personalized Website (text is visibly larger)
-```
+Personalization layer for the web. This folder is self-contained and does
+not depend on the web app to run standalone tests.
 
 ## File structure
 
 ```
 extension/
-├── manifest.json                    Manifest V3 config
-├── icons/                           Toolbar/store icons (16/48/128)
+├── manifest.json
+├── README.md
+├── icons/
+│   ├── icon16.png
+│   ├── icon48.png
+│   └── icon128.png
+├── test-page.html                 ← standalone page for manual testing
 └── src/
     ├── popup/
-    │   ├── popup.html               Extension toolbar popup UI
+    │   ├── popup.html
     │   ├── popup.css
-    │   └── popup.js                 Sends APPLY_CONFIG/RESET_CONFIG to the active tab
+    │   └── popup.js
     ├── content/
-    │   └── content.js               Runs inside the webpage; applies config to DOM
+    │   └── content.js             ← entry point injected into every page
     ├── background/
-    │   └── background.js            Service worker: install hooks + web app bridge
+    │   └── background.js          ← MV3 service worker
     ├── transformations/
-    │   ├── fontSize.js              Transformation #1 (proof of concept)
-    │   ├── lineSpacing.js           Transformation #2 (proves it's pluggable)
-    │   └── registry.js              Engine core: config -> apply/revert calls
+    │   ├── index.js                ← engine: applyConfig / revertAll
+    │   ├── typography.js
+    │   ├── spacing.js
+    │   ├── buttons.js
+    │   ├── navigation.js
+    │   ├── clutter.js
+    │   └── images.js
     └── shared/
-        ├── messageTypes.js          Message name constants
-        └── defaultConfig.js         Sample TransformationConfig shape
+        ├── config.js               ← schema + normalizeConfig()
+        ├── dom-utils.js             ← qs/qsa/mark/injectStyle/etc.
+        └── storage.js               ← chrome.storage.local wrapper
 ```
 
-## How the pieces fit together
+## Loading the extension in Chrome
 
-- **Transformation Configuration** is a plain object:
-  ```js
-  {
-    version: 1,
-    transformations: [
-      { id: "increase-text-size", type: "fontSize", enabled: true, params: { scale: 1.25 } }
-    ]
-  }
-  ```
-  This is the shape Team 1's web app is expected to eventually produce.
+1. Open `chrome://extensions`
+2. Enable **Developer mode** (top-right toggle)
+3. Click **Load unpacked**
+4. Select the `extension/` folder
+5. Pin "Formora" from the extensions toolbar icon for easy access
 
-- **Transformation engine** (`transformations/registry.js`) doesn't know
-  about Chrome APIs at all — it just takes a config object and calls
-  `apply()`/`revert()` on whichever transformation modules match each
-  rule's `type`. Adding a new transformation means adding one file and one
-  registry entry; nothing else changes.
+Any time you edit a file, go back to `chrome://extensions` and click the
+refresh icon on the Formora card, then reload the target tab.
 
-- **Content script** (`content/content.js`) is the only piece that touches
-  both Chrome messaging and the DOM. On page load it checks
-  `chrome.storage.local` for a saved config and re-applies it automatically
-  (so transformations persist across refreshes/navigation). It also listens
-  live for messages from the popup or background worker.
+## Manual test (proves the core pipeline)
 
-- **Popup** (`popup/`) is the manual trigger used for this first proof: a
-  button sends a hardcoded test config (`fontSize`, scale `1.25`) straight
-  to the content script via `chrome.tabs.sendMessage`.
+1. Load the extension (above)
+2. Open `extension/test-page.html` directly in Chrome (or any real site)
+3. Click the Formora icon → flip the master toggle on
+4. You should immediately see:
+   - Larger, more readable text
+   - More breathing room between paragraphs/list items
+   - Buttons/links outlined in yellow
+   - A "More" toggle on long navigation bars
+   - Ad/cookie/newsletter-style blocks dimmed out
+5. Flip the toggle off → the page returns to its original appearance
 
-- **Background service worker** (`background/background.js`) handles two
-  things the popup can't: seeding a default config on install (and
-  injecting the content script into tabs that were already open, so the
-  demo doesn't require a manual refresh), and listening for
-  `externally_connectable` messages — this is the eventual entry point for
-  Team 1's web app to hand off a finished config without the user manually
-  clicking anything in the popup.
+This proves the full chain:
+**Chrome → Extension → Content Script → DOM → Visible, reversible transformation.**
 
-## Loading the extension into Chrome
+## Config contract (web app → extension)
 
-1. Open `chrome://extensions`.
-2. Toggle **Developer mode** on (top-right corner).
-3. Click **Load unpacked**.
-4. Select the `extension/` folder (the one containing `manifest.json`).
-5. Formora should appear in your extensions list and in the toolbar
-   (pin it via the puzzle-piece icon if it's hidden).
+The web app should push a config object shaped like:
 
-## Testing the proof-of-concept
+```json
+{
+  "fontSize": "large",
+  "contentDensity": "low",
+  "simplifyNavigation": true,
+  "highlightActions": true,
+  "reduceVisualClutter": true
+}
+```
 
-1. Open any normal webpage (e.g. `https://en.wikipedia.org/wiki/Web_browser`).
-   `chrome://` pages and the Chrome Web Store won't work — Chrome blocks
-   extensions from running there.
-2. Click the Formora icon in the toolbar.
-3. Click **Increase text size** — the page's text should visibly grow.
-4. Click **Reset page** — it returns to normal.
-5. Refresh the page after applying — the transformation re-applies itself
-   automatically (proves the storage → auto-apply-on-load path works, which
-   is what real personalization needs, not just one-off clicks).
+From the web app's origin (must be listed in `externally_connectable` in
+manifest.json — currently `*.formora.app` and localhost:3000/5173):
 
-If the popup says *"Not connected yet"*, refresh the target tab once after
-first loading the extension — tabs that were already open before install
-need one reload (or rely on the auto-injection in `background.js`'s
-`onInstalled` handler, which handles this for tabs open at install time).
+```js
+chrome.runtime.sendMessage(
+  "<EXTENSION_ID>",
+  { type: "FORMORA_CONFIG_PUSH", config: { fontSize: "large", ... } },
+  (response) => console.log(response)
+);
+```
 
-## Notes for the rest of the team
+The background worker stores the config and forwards it to whichever tab
+is currently active. Unknown/invalid fields are ignored —
+`shared/config.js` normalizes everything against `DEFAULT_CONFIG` before
+any transformation runs, so a malformed config from the web app can't
+crash the content script.
 
-- Team 1 (web app): once the config export exists, send it to the
-  extension via `chrome.runtime.sendMessage(EXTENSION_ID, { type:
-  "FORMORA_CONFIG_FROM_WEBAPP", config }, callback)` from the web app's
-  origin. Add your dev/prod origins to `externally_connectable.matches` in
-  `manifest.json` (localhost:3000 and `formora.app` are stubbed in already
-  — update as needed).
-- This does **not** attempt universal personalization yet — only two
-  transformation types exist (`fontSize`, `lineSpacing`), applied via
-  simple injected `<style>` tags. That's intentional for a 48-hour scope;
-  the registry pattern is there so more can be added quickly.
+## Design notes / trade-offs
+
+- **Reversibility first.** Every visual change is either (a) a scoped
+  CSS rule under `html[data-formora-active]`, toggled by a class, or
+  (b) a class added to a detected element. Turning Formora off removes
+  the injected `<style>` tags and strips every `formora-*` class —
+  nothing is deleted from the original DOM except elements Formora
+  itself created (like the nav "More" button).
+- **Conservative detection.** Buttons/navigation/clutter modules use
+  narrow, well-established selectors (`role="button"`, `class*="cta"`,
+  `<nav>`, `class*="cookie"`, etc.) instead of walking every element,
+  so we don't mangle app shells or layouts we don't understand.
+- **Dynamic content.** A single debounced `MutationObserver` re-runs
+  detection (not the CSS injection, which is already global) when new
+  nodes are added — covers SPA navigation and infinite scroll without
+  re-scanning the whole DOM on every keystroke.
+- **Known limitation:** clutter reduction includes a blanket
+  `animation-duration` override for cosmetic flattening. This is a
+  hackathon shortcut — a production version should scope it more
+  narrowly so it never touches loading spinners.

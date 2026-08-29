@@ -1,99 +1,110 @@
 /**
- * Formora — popup script.
+ * Formora popup
  *
- * Popups run in their own extension page context, so — like
- * background.js — these constants are duplicated from
- * src/shared/messageTypes.js. Keep them in sync if either file changes.
- *
- * This is the "prove the pipeline works" entry point:
- *   click button -> sendMessage to content script -> engine.applyConfig ->
- *   DOM changes visibly on the page behind the popup.
+ * Reads current state from chrome.storage on open, reflects it in the
+ * form, and sends FORMORA_APPLY / FORMORA_REVERT to the active tab's
+ * content script whenever the user flips the master toggle or clicks
+ * "Apply".
  */
-const STORAGE_KEY = "formora_config";
 
-const MessageTypes = {
-  APPLY_CONFIG: "FORMORA_APPLY_CONFIG",
-  RESET_CONFIG: "FORMORA_RESET_CONFIG",
-  GET_STATE: "FORMORA_GET_STATE",
+const STORAGE_KEYS = { ENABLED: 'formora_enabled', CONFIG: 'formora_config' };
+
+const els = {
+  masterToggle: document.getElementById('masterToggle'),
+  controls: document.getElementById('controls'),
+  fontSize: document.getElementById('fontSize'),
+  contentDensity: document.getElementById('contentDensity'),
+  simplifyNavigation: document.getElementById('simplifyNavigation'),
+  highlightActions: document.getElementById('highlightActions'),
+  reduceVisualClutter: document.getElementById('reduceVisualClutter'),
+  applyBtn: document.getElementById('applyBtn'),
+  status: document.getElementById('status'),
 };
 
-const TEST_CONFIG = {
-  version: 1,
-  updatedAt: new Date().toISOString(),
-  transformations: [
-    {
-      id: "increase-text-size",
-      type: "fontSize",
-      enabled: true,
-      params: { scale: 1.25 },
-    },
-  ],
-};
+function readForm() {
+  return {
+    fontSize: els.fontSize.value,
+    contentDensity: els.contentDensity.value,
+    simplifyNavigation: els.simplifyNavigation.checked,
+    highlightActions: els.highlightActions.checked,
+    reduceVisualClutter: els.reduceVisualClutter.checked,
+  };
+}
 
-const statusEl = document.getElementById("status");
-const applyBtn = document.getElementById("applyBtn");
-const resetBtn = document.getElementById("resetBtn");
+function writeForm(config) {
+  if (!config) return;
+  els.fontSize.value = config.fontSize || 'medium';
+  els.contentDensity.value = config.contentDensity || 'medium';
+  els.simplifyNavigation.checked = Boolean(config.simplifyNavigation);
+  els.highlightActions.checked = Boolean(config.highlightActions);
+  els.reduceVisualClutter.checked = Boolean(config.reduceVisualClutter);
+}
+
+function setControlsEnabled(enabled) {
+  els.controls.style.opacity = enabled ? '1' : '0.5';
+  Array.from(els.controls.querySelectorAll('select, input, button')).forEach((el) => {
+    if (el.id !== 'masterToggle') el.disabled = !enabled;
+  });
+}
+
+function setStatus(text, timeout = 1500) {
+  els.status.textContent = text;
+  if (timeout) setTimeout(() => (els.status.textContent = ''), timeout);
+}
 
 async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
 }
 
-function setStatus(text, tone = "info") {
-  statusEl.textContent = text;
-  statusEl.style.color = tone === "error" ? "#b91c1c" : "#4f46e5";
-  statusEl.style.background = tone === "error" ? "#fef2f2" : "#eef2ff";
-}
-
-// Ask the content script what state it's currently in, so the popup UI
-// reflects reality rather than assuming.
-async function refreshStatus() {
+async function sendToActiveTab(message) {
   const tab = await getActiveTab();
-  if (!tab || !tab.url || !/^https?:\/\//.test(tab.url)) {
-    setStatus("Formora can't run on this page.", "error");
-    applyBtn.disabled = true;
-    resetBtn.disabled = true;
-    return;
+  if (!tab || !tab.id) return { ok: false, error: 'no-active-tab' };
+  try {
+    return await chrome.tabs.sendMessage(tab.id, message);
+  } catch (err) {
+    // Most common cause: content script isn't injected on this page
+    // (chrome:// URLs, the Chrome Web Store, etc.)
+    return { ok: false, error: String(err) };
   }
-
-  chrome.tabs.sendMessage(tab.id, { type: MessageTypes.GET_STATE }, (response) => {
-    if (chrome.runtime.lastError || !response) {
-      // Most likely the content script hasn't loaded yet on this tab
-      // (e.g. extension was just installed). A page refresh fixes it.
-      setStatus("Not connected yet — try refreshing the page.", "error");
-      return;
-    }
-    const hasConfig = response.config && response.config.transformations?.length;
-    setStatus(hasConfig ? "Transformation active on this page." : "Ready — no transformation applied yet.");
-  });
 }
 
-applyBtn.addEventListener("click", async () => {
-  const tab = await getActiveTab();
-  if (!tab) return;
+async function loadInitialState() {
+  const stored = await chrome.storage.local.get([STORAGE_KEYS.ENABLED, STORAGE_KEYS.CONFIG]);
+  const enabled = Boolean(stored[STORAGE_KEYS.ENABLED]);
+  const config = stored[STORAGE_KEYS.CONFIG];
 
-  chrome.tabs.sendMessage(tab.id, { type: MessageTypes.APPLY_CONFIG, config: TEST_CONFIG }, (response) => {
-    if (chrome.runtime.lastError || !response) {
-      setStatus("Couldn't reach the page — try refreshing it.", "error");
-      return;
-    }
-    chrome.storage.local.set({ [STORAGE_KEY]: TEST_CONFIG });
-    setStatus("Text size increased on this page ✓");
-  });
-});
+  els.masterToggle.checked = enabled;
+  setControlsEnabled(enabled);
+  if (config) writeForm(config);
+}
 
-resetBtn.addEventListener("click", async () => {
-  const tab = await getActiveTab();
-  if (!tab) return;
+async function applyCurrentConfig() {
+  const config = readForm();
+  els.applyBtn.disabled = true;
+  const result = await sendToActiveTab({ type: 'FORMORA_APPLY', config });
+  els.applyBtn.disabled = false;
 
-  chrome.tabs.sendMessage(tab.id, { type: MessageTypes.RESET_CONFIG }, (response) => {
-    if (chrome.runtime.lastError || !response) {
-      setStatus("Couldn't reach the page — try refreshing it.", "error");
-      return;
-    }
-    chrome.storage.local.remove(STORAGE_KEY);
-    setStatus("Page reset to normal.");
-  });
-});
+  if (result && result.ok) {
+    setStatus('Applied ✓');
+  } else {
+    setStatus('Could not apply on this page');
+  }
+}
 
-refreshStatus();
+async function handleMasterToggle() {
+  const enabled = els.masterToggle.checked;
+  setControlsEnabled(enabled);
+
+  if (enabled) {
+    await applyCurrentConfig();
+  } else {
+    const result = await sendToActiveTab({ type: 'FORMORA_REVERT' });
+    setStatus(result && result.ok ? 'Reverted' : 'Could not revert on this page');
+  }
+}
+
+els.masterToggle.addEventListener('change', handleMasterToggle);
+els.applyBtn.addEventListener('click', applyCurrentConfig);
+
+loadInitialState();

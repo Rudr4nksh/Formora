@@ -7,27 +7,51 @@
 </head>
 <body>
   <header class="header">
-    <img src="../../icons/icon48.png" alt="" class="logo" />
-    <div>
-      <h1>Formora</h1>
-      <p class="subtitle">Personalization layer for the web</p>
-    </div>
+    <span class="logo">Formora</span>
+    <label class="switch">
+      <input type="checkbox" id="masterToggle" />
+      <span class="slider"></span>
+    </label>
   </header>
 
-  <main class="content">
-    <p class="status" id="status">Checking this page…</p>
-
-    <section class="action-group">
-      <h2>Test transformation</h2>
-      <p class="hint">Increases text size on the current page to prove the pipeline works.</p>
-      <button id="applyBtn" class="btn btn-primary">Increase text size</button>
-      <button id="resetBtn" class="btn btn-secondary">Reset page</button>
+  <main id="controls" class="controls">
+    <section class="field">
+      <label for="fontSize">Font size</label>
+      <select id="fontSize">
+        <option value="small">Small</option>
+        <option value="medium" selected>Medium</option>
+        <option value="large">Large</option>
+        <option value="x-large">Extra large</option>
+      </select>
     </section>
-  </main>
 
-  <footer class="footer">
-    <span id="footerNote">Chrome → Extension → Content Script → DOM</span>
-  </footer>
+    <section class="field">
+      <label for="contentDensity">Content density</label>
+      <select id="contentDensity">
+        <option value="low">Low (spacious)</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High (compact)</option>
+      </select>
+    </section>
+
+    <section class="field checkbox-field">
+      <label for="simplifyNavigation">Simplify navigation</label>
+      <input type="checkbox" id="simplifyNavigation" />
+    </section>
+
+    <section class="field checkbox-field">
+      <label for="highlightActions">Highlight action buttons</label>
+      <input type="checkbox" id="highlightActions" />
+    </section>
+
+    <section class="field checkbox-field">
+      <label for="reduceVisualClutter">Reduce visual clutter</label>
+      <input type="checkbox" id="reduceVisualClutter" />
+    </section>
+
+    <button id="applyBtn" class="primary-btn">Apply to this page</button>
+    <p id="status" class="status"></p>
+  </main>
 
   <script src="popup.js"></script>
 </body>
