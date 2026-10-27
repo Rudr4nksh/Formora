@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Account ready — Formora AI</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .success-card{text-align:center}.success-card h1{max-width:none;margin-inline:auto}.success-card p{max-width:42ch;margin-inline:auto}.success-orb{display:grid;place-items:center;width:74px;height:74px;margin:0 auto 28px;border:1px solid rgba(128,211,255,.52);border-radius:50%;background:radial-gradient(circle at 35% 25%,rgba(166,222,255,.65),rgba(95,133,255,.23) 46%,rgba(158,112,255,.13));box-shadow:0 0 45px rgba(112,174,255,.25),inset 0 0 24px rgba(219,241,255,.22);color:#e7f7ff;font-size:34px}.success-card .btn{min-width:240px;margin-top:7px}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="nav"><a class="brand" href="/">Formora <span>AI</span></a><span>Account secured</span></nav>
+    <main>
+      <section class="card success-card">
+        <div class="success-orb">✓</div>
+        <h1 id="heading">You’re all set.</h1>
+        <p id="message">Your Formora account is ready. Let’s step into your workspace.</p>
+        <a class="btn" href="/dashboard.html">Continue to dashboard →</a>
+      </section>
+    </main>
+  </div>
+  <script>
+    if (new URLSearchParams(location.search).get('event') === 'signup') {
+      document.getElementById('heading').textContent = 'Account created.';
+      document.getElementById('message').textContent = 'Your Formora account is ready. Continue when you’re ready to enter your workspace.';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dashboard — Formora AI</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .dashboard{width:min(900px,100%)}
+    .eyebrow{color:var(--cyan);font:500 11px 'DM Mono',monospace;letter-spacing:.13em;text-transform:uppercase;margin-bottom:15px}
+    .dashboard h1{max-width:15ch;font-size:clamp(38px,6vw,58px)}
+    .dashboard-card{width:100%;margin-top:24px}
+    .dashboard-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px;margin-top:26px}
+    .mini-card{padding:22px;border:1px solid var(--line);border-radius:14px;background:rgba(1,5,13,.32)}
+    .mini-card h2{margin:13px 0 0;font-size:22px;letter-spacing:-.6px}
+    .mini-card p{font-size:14px;margin:7px 0 18px}.status{display:inline-flex;align-items:center;gap:8px;color:#b9eaff;font:500 11px 'DM Mono',monospace;letter-spacing:.04em}.status:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+    .link-plain{font:500 12px 'DM Mono',monospace;text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:3px}
+    @media(max-width:650px){.dashboard-grid{grid-template-columns:1fr}.dashboard h1{font-size:39px}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="nav"><a class="brand" href="/">Formora <span>AI</span></a><form action="/logout" method="post"><button class="btn secondary">Log out</button></form></nav>
+    <main>
+      <section class="card dashboard dashboard-card">
+        <p class="eyebrow">Your workspace is ready</p>
+        <h1 id="greeting">Welcome.</h1>
+        <p id="intro">A calm place to build forms that feel unmistakably yours.</p>
+        <div class="dashboard-grid">
+          <article class="mini-card">
+            <span class="status" id="profileStatus">Checking profile</span>
+            <h2 id="profileTitle">Getting things ready</h2>
+            <p id="profileCopy">We’re preparing your Formora workspace.</p>
+            <a class="btn" id="primaryAction" href="/profile.html">Set up profile</a>
+          </article>
+          <article class="mini-card">
+            <p class="eyebrow">Account</p>
+            <p id="accountEmail">Loading account…</p>
+            <a class="link-plain" href="/details.html">View saved details →</a>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    fetch('/api/me').then(r => r.ok ? r.json() : Promise.reject()).then(({user, profile}) => {
+      const firstName = (profile?.full_name || user.email.split('@')[0]).trim().split(/\s+/)[0];
+      document.getElementById('greeting').textContent = `Welcome, ${firstName}.`;
+      document.getElementById('accountEmail').textContent = user.email;
+      if (profile) {
+        document.getElementById('profileStatus').textContent = 'Profile complete';
+        document.getElementById('profileTitle').textContent = 'Everything is in place';
+        document.getElementById('profileCopy').textContent = 'Your details are saved and ready whenever you need them.';
+        document.getElementById('primaryAction').textContent = 'View your profile';
+        document.getElementById('primaryAction').href = '/details.html';
+      } else {
+        document.getElementById('profileStatus').textContent = 'One quick step left';
+        document.getElementById('profileTitle').textContent = 'Make this space yours';
+        document.getElementById('profileCopy').textContent = 'Add a few profile details so Formora can welcome you properly.';
+      }
+    }).catch(() => location.href = '/login.html');
+  </script>
+</body>
+</html>
